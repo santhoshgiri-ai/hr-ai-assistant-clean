@@ -60,7 +60,7 @@ hr-ai-assistant/
 ### 1️⃣ Clone Repo
 
 ```
-git clone https://github.com/YOUR_USERNAME/hr-ai-assistant.git
+git clone https://github.com/santhoshgiri-ai/hr-ai-assistant-clean.git
 cd hr-ai-assistant
 ```
 
