@@ -5,7 +5,7 @@ from pydantic import BaseModel
 from fastapi.middleware.cors import CORSMiddleware
 from langchain_community.vectorstores import FAISS
 from langchain_openai import OpenAIEmbeddings, ChatOpenAI
-from langchain.chains.retrieval_qa.base import RetrievalQA
+from langchain.chains import RetrievalQA
 from langchain.prompts import PromptTemplate
 
 load_dotenv()
@@ -22,9 +22,7 @@ class Query(BaseModel):
     question: str
 
 embeddings = OpenAIEmbeddings()
-
 vectorstore = FAISS.load_local("vectorstore", embeddings, allow_dangerous_deserialization=True)
-
 llm = ChatOpenAI()
 
 qa_chain = RetrievalQA.from_chain_type(llm=llm, retriever=vectorstore.as_retriever(search_kwargs={"k": 4}), chain_type="stuff", chain_type_kwargs={"prompt": PROMPT})
