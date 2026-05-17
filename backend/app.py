@@ -4,25 +4,30 @@ from fastapi import FastAPI
 from pydantic import BaseModel
 from fastapi.middleware.cors import CORSMiddleware
 from langchain_community.vectorstores import FAISS
-from langchain_community.chains import RetrievalQA
 from langchain_openai import OpenAIEmbeddings, ChatOpenAI
 from langchain_core.prompts import PromptTemplate
+from langchain_core.runnables import RunnablePassthrough
+from langchain_core.output_parsers import StrOutputParser
 
 load_dotenv()
 
 app = FastAPI()
 app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_credentials=True, allow_methods=["*"], allow_headers=["*"])
 
-prompt_template = "You are an HR assistant. Answer ONLY from the provided context. If the answer is not in the context, say I don't know. Context: {context} Question: {question} Answer:"
-PROMPT = PromptTemplate(template=prompt_template, input_variables=["context", "question"])
+prompt_template = PromptTemplate.from_template("You are an HR assistant. Answer ONLY from the provided context. If the answer is not in the context, say I don't know.
+Context: {context}
+Question: {question}
+Answer:")
 
 class Query(BaseModel):
     question: str
 
 embeddings = OpenAIEmbeddings()
 vectorstore = FAISS.load_local("vectorstore", embeddings, allow_dangerous_deserialization=True)
+retriever = vectorstore.as_retriever(search_kwargs={"k": 4})
 llm = ChatOpenAI()
-qa_chain = RetrievalQA.from_chain_type(llm=llm, retriever=vectorstore.as_retriever(search_kwargs={"k": 4}), chain_type="stuff", chain_type_kwargs={"prompt": PROMPT})
+
+chain = ({"context": retriever, "question": RunnablePassthrough()} | prompt_template | llm | StrOutputParser())
 
 @app.get("/")
 def home():
@@ -30,5 +35,5 @@ def home():
 
 @app.post("/ask")
 async def ask_ai(query: Query):
-    response = qa_chain.invoke({"query": query.question})
-    return {"question": query.question, "answer": response["result"]}
+    answer = chain.invoke(query.question)
+    return {"question": query.question, "answer": answer}
