@@ -14,10 +14,7 @@ load_dotenv()
 app = FastAPI()
 app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_credentials=True, allow_methods=["*"], allow_headers=["*"])
 
-prompt_template = PromptTemplate.from_template("You are an HR assistant. Answer ONLY from the provided context. If the answer is not in the context, say I don't know.
-Context: {context}
-Question: {question}
-Answer:")
+PROMPT = PromptTemplate.from_template("You are an HR assistant. Answer ONLY from the provided context. If the answer is not in the context, say I don't know. Context: {context} Question: {question} Answer:")
 
 class Query(BaseModel):
     question: str
@@ -26,8 +23,7 @@ embeddings = OpenAIEmbeddings()
 vectorstore = FAISS.load_local("vectorstore", embeddings, allow_dangerous_deserialization=True)
 retriever = vectorstore.as_retriever(search_kwargs={"k": 4})
 llm = ChatOpenAI()
-
-chain = ({"context": retriever, "question": RunnablePassthrough()} | prompt_template | llm | StrOutputParser())
+chain = ({"context": retriever, "question": RunnablePassthrough()} | PROMPT | llm | StrOutputParser())
 
 @app.get("/")
 def home():
